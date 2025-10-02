@@ -1,6 +1,6 @@
 import { ArrowButton } from 'src/ui/arrow-button';
 import { Button } from 'src/ui/button';
-import { useState, SyntheticEvent } from 'react';
+import { useState, SyntheticEvent, useRef } from 'react';
 import { Select } from 'src/ui/select';
 import { Text } from 'src/ui/text';
 import {
@@ -10,8 +10,12 @@ import {
 	defaultArticleState,
 	ArticleStateType,
 	fontSizeOptions,
+	backgroundColors,
+	contentWidthArr,
 } from 'src/constants/articleProps';
 import { RadioGroup } from 'src/ui/radio-group';
+import { Separator } from 'src/ui/separator';
+import { useOutsideFromClose } from 'components/article-params-form/hooks/useOutsideFormClose';
 
 import clsx from 'clsx';
 
@@ -19,80 +23,121 @@ import styles from './ArticleParamsForm.module.scss';
 
 export type ArticleParamsFormProps = {
 	onApply: (value: Partial<ArticleStateType>) => void;
+	defaultState: Partial<ArticleStateType>;
 };
+
 export const ArticleParamsForm = (props: ArticleParamsFormProps) => {
-	const [isFormOpen, setFormIsOpen] = useState(false);
-	const [config, setConfig] =
-		useState<Partial<ArticleStateType>>(defaultArticleState);
-	const { onApply } = props;
+	const { onApply, defaultState } = props;
+	const [formIsOpen, setFormIsOpen] = useState<boolean>(false);
+	const [articleState, setArticleState] =
+		useState<Partial<ArticleStateType>>(defaultState);
+	const formRef = useRef<HTMLElement | null>(null);
 
 	const handleFormIsOpenToggle = () => {
-		setFormIsOpen(!isFormOpen);
+		setFormIsOpen(!formIsOpen);
 	};
 
 	const handleFontSelect = (option: OptionType) => {
-		setConfig({
-			...config,
+		setArticleState({
+			...articleState,
 			fontFamilyOption: option,
 		});
 	};
 
+	const handleFontSizeSelect = (option: OptionType) => {
+		setArticleState({
+			...articleState,
+			fontSizeOption: option,
+		});
+	};
+
 	const handleFontColorSelect = (option: OptionType) => {
-		setConfig({
-			...config,
+		setArticleState({
+			...articleState,
 			fontColor: option,
 		});
 	};
 
-	const handleFontSizeSelect = (option: OptionType) => {
-		setConfig({
-			...config,
-			fontSizeOption: option,
+	const handleBgColorSelect = (option: OptionType) => {
+		setArticleState({
+			...articleState,
+			backgroundColor: option,
+		});
+	};
+
+	const handleContentWidthSelect = (option: OptionType) => {
+		setArticleState({
+			...articleState,
+			contentWidth: option,
 		});
 	};
 
 	const handeApplyingChanges = (evt?: SyntheticEvent) => {
 		evt?.preventDefault();
 
-		onApply(config);
+		onApply(articleState);
 	};
 
 	const handleReset = () => {
-		setConfig(defaultArticleState);
+		setArticleState(defaultArticleState);
 
-		onApply(config);
+		onApply(articleState);
 	};
+
+	const handleEscKeyClose = () => {
+		setFormIsOpen(false);
+	};
+
+	useOutsideFromClose({
+		formIsOpen: formIsOpen,
+		rootRef: formRef,
+		onChange: setFormIsOpen,
+		onClose: handleEscKeyClose,
+	});
 
 	return (
 		<>
-			<ArrowButton isOpen={isFormOpen} onClick={handleFormIsOpenToggle} />
+			<ArrowButton isOpen={formIsOpen} onClick={handleFormIsOpenToggle} />
 			<aside
+				ref={formRef}
 				className={clsx(styles.container, {
-					[styles.container_open]: isFormOpen,
+					[styles.container_open]: formIsOpen,
 				})}>
-				<form className={styles.form}>
+				<form
+					className={styles.form}
+					onSubmit={handeApplyingChanges}
+					onReset={handleReset}>
 					<Text as='h2' size={31} weight={800} uppercase>
 						Задайте параметры
 					</Text>
 					<Select
 						title={'шрифт'}
-						placeholder={'Выберите шрифт'}
-						selected={config.fontFamilyOption}
+						selected={articleState.fontFamilyOption}
 						options={fontFamilyOptions}
 						onChange={handleFontSelect}></Select>
 					<RadioGroup
 						name={'размер шрифта'}
 						options={fontSizeOptions}
-						selected={config.fontSizeOption}
+						selected={articleState.fontSizeOption}
 						title={'размер шрифта'}
 						onChange={handleFontSizeSelect}
 					/>
 					<Select
 						title={'цвет шрифта'}
-						placeholder={'Выберите цвет шрифта'}
-						selected={config.fontColor}
+						selected={articleState.fontColor}
 						options={fontColors}
 						onChange={handleFontColorSelect}></Select>
+					<Separator />
+					<Select
+						title={'цвет фона'}
+						selected={articleState.backgroundColor}
+						options={backgroundColors}
+						onChange={handleBgColorSelect}></Select>
+					<Select
+						title={'ширина контейнера'}
+						selected={articleState.contentWidth}
+						options={contentWidthArr}
+						onChange={handleContentWidthSelect}></Select>
 					<div className={styles.bottomContainer}>
 						<Button
 							title='Сбросить'
